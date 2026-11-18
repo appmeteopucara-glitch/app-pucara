@@ -1,0 +1,71 @@
+workflows:
+  ios-release:
+    name: iOS Release
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: codemagic_pucara
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      groups:
+        - pucara_env
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.pucara.pronosticosapp
+      vars:
+        APP_STORE_APPLE_ID: 6836152794
+    scripts:
+      - name: Crear .env
+        script: echo "BASE_URL=$BASE_URL" > .env
+      - name: Dependencias
+        script: flutter pub get
+      - name: Pods
+        script: |
+          cd ios
+          pod install
+      - name: Aplicar firma
+        script: xcode-project use-profiles
+      - name: Compilar IPA
+        script: |
+          BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID") + 1))
+          flutter build ipa --release \
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  android-release:
+    name: Android Release
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      java: 17
+      groups:
+        - pucara_env
+      android_signing:
+        - pucara_keystore
+    scripts:
+      - name: Crear .env
+        script: echo "BASE_URL=$BASE_URL" > .env
+      - name: Configurar firma
+        script: |
+          cat > android/key.properties <<EOF
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyPassword=$CM_KEY_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          storeFile=$CM_KEYSTORE_PATH
+          EOF
+      - name: Dependencias
+        script: flutter pub get
+      - name: Compilar AAB
+        script: flutter build appbundle --release --build-number=$(($BUILD_NUMBER + 7))
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab
