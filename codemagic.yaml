@@ -11,11 +11,9 @@ workflows:
       cocoapods: default
       groups:
         - pucara_env
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.pucara.pronosticosapp
       vars:
         APP_STORE_APPLE_ID: 6836152794
+        BUNDLE_ID: com.pucara.pronosticosapp
     scripts:
       - name: Crear .env
         script: echo "BASE_URL=$BASE_URL" > .env
@@ -25,6 +23,12 @@ workflows:
         script: |
           cd ios
           pod install
+      - name: Preparar llavero
+        script: keychain initialize
+      - name: Obtener firma de Apple
+        script: app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+      - name: Agregar certificados
+        script: keychain add-certificates
       - name: Aplicar firma
         script: xcode-project use-profiles
       - name: Compilar IPA
