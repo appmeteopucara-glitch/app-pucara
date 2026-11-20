@@ -10,6 +10,7 @@ AuthRepository buildAuthRepository() {
     apiClient: api,
     registerEndpoint: '/api/auth/register-meteorologist',
     loginEndpoint: '/api/auth/login',
+    deleteAccountEndpoint: '/api/auth/delete-account',
   );
   return AuthRepositoryImpl(ds);
 }

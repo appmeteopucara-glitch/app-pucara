@@ -3,6 +3,7 @@ import 'package:pronosticosapp/features/auth/domain/repositories/auth_repository
 import 'package:pronosticosapp/features/auth/data/datasource/auth_remote_data_source.dart';
 import 'package:pronosticosapp/features/auth/data/models/register_request.dart';
 import 'package:pronosticosapp/features/auth/domain/entities/login_result.dart';
+import 'package:pronosticosapp/features/auth/domain/entities/delete_account_result.dart';
 import 'package:pronosticosapp/features/auth/data/models/login_request.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -33,5 +34,10 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<LoginResult> login({required String email, required String password}) {
     final req = LoginRequest(email: email, password: password);
     return remote.login(req);
+  }
+
+  @override
+  Future<DeleteAccountResult> deleteAccount({required String password}) {
+    return remote.deleteAccount(password);
   }
 }

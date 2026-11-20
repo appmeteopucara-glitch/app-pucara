@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:pronosticosapp/core/network/api_client.dart';
+import 'package:pronosticosapp/core/storage/token_storage.dart';
 import 'package:pronosticosapp/features/auth/domain/entities/register_result.dart';
 import 'package:pronosticosapp/features/auth/domain/entities/login_result.dart';
+import 'package:pronosticosapp/features/auth/domain/entities/delete_account_result.dart';
 import 'package:pronosticosapp/features/auth/domain/entities/user_company.dart';
 import 'package:pronosticosapp/features/auth/data/models/register_request.dart';
 import 'package:pronosticosapp/features/auth/data/models/login_request.dart';
@@ -11,11 +13,13 @@ class AuthRemoteDataSource {
   final ApiClient apiClient;
   final String registerEndpoint;
   final String loginEndpoint;
+  final String deleteAccountEndpoint;
 
   AuthRemoteDataSource({
     required this.apiClient,
     required this.registerEndpoint,
     required this.loginEndpoint,
+    required this.deleteAccountEndpoint,
   });
 
   Future<RegisterResult> register(RegisterRequest request) async {
@@ -88,6 +92,45 @@ class AuthRemoteDataSource {
     } catch (e) {
       debugPrint('[AuthRemoteDataSource] login error: $e');
       return LoginResult(success: false, message: 'Error de red', token: '', statusCode: null, roles: const []);
+    }
+  }
+
+  Future<DeleteAccountResult> deleteAccount(String password) async {
+    const genericError = 'No se pudo eliminar la cuenta. Intenta nuevamente';
+    try {
+      final token = await TokenStorage.getToken();
+      await apiClient.post(
+        deleteAccountEndpoint,
+        body: {'password': password},
+        headers: {if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token'},
+      );
+      return DeleteAccountResult(success: true, message: 'Tu cuenta fue eliminada', statusCode: 200);
+    } on ApiException catch (e) {
+      debugPrint('[AuthRemoteDataSource] deleteAccount ApiException ${e.statusCode}');
+      // 401 llega sin body cuando el usuario fue desactivado o el token venció.
+      if (e.statusCode == 401 || e.statusCode == 404) {
+        return DeleteAccountResult(success: false, message: genericError, statusCode: e.statusCode, sessionExpired: true);
+      }
+      var msg = genericError;
+      if (e.statusCode < 500) {
+        try {
+          final body = e.message;
+          if (body.startsWith('{')) {
+            final map = json.decode(body) as Map<String, dynamic>;
+            final errs = map['errors'] ?? map['Errors'];
+            final m = (map['message'] ?? map['Message'] ?? '').toString();
+            if (errs is List && errs.isNotEmpty) {
+              msg = errs.first.toString();
+            } else if (m.isNotEmpty) {
+              msg = m;
+            }
+          }
+        } catch (_) {}
+      }
+      return DeleteAccountResult(success: false, message: msg, statusCode: e.statusCode);
+    } catch (e) {
+      debugPrint('[AuthRemoteDataSource] deleteAccount error: $e');
+      return DeleteAccountResult(success: false, message: 'Error de red. Intenta nuevamente');
     }
   }
 }

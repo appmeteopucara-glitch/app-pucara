@@ -1,5 +1,6 @@
 import 'package:pronosticosapp/features/auth/domain/entities/register_result.dart';
 import 'package:pronosticosapp/features/auth/domain/entities/login_result.dart';
+import 'package:pronosticosapp/features/auth/domain/entities/delete_account_result.dart';
 
 abstract class AuthRepository {
   Future<RegisterResult> register({
@@ -14,4 +15,5 @@ abstract class AuthRepository {
     required String email,
     required String password,
   });
+  Future<DeleteAccountResult> deleteAccount({required String password});
 }

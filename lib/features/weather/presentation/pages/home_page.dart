@@ -163,6 +163,11 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(width: 10),
             _headerIconButton(
+              icon: Icons.person_outline,
+              onTap: () => Get.toNamed(AppRoutes.account),
+            ),
+            const SizedBox(width: 10),
+            _headerIconButton(
               icon: Icons.logout,
               onTap: () => _confirmLogout(context),
             ),
